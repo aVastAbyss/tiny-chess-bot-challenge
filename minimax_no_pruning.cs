@@ -23,11 +23,9 @@ public class MyBot : IChessBot
 
         if (board.IsWhiteToMove)
         {
-            Console.WriteLine(values.Max());
             return legalMoves[values.IndexOf(values.Max())];
         }
 
-        Console.WriteLine(values.Min());
         return legalMoves[values.IndexOf(values.Min())];
     }
 
