@@ -23,9 +23,11 @@ public class MyBot : IChessBot
 
         if (board.IsWhiteToMove)
         {
+            Console.WriteLine(evalList.Max());
             return legalMoves[evalList.IndexOf(evalList.Max())];
         }
 
+        Console.WriteLine(evalList.Min());
         return legalMoves[evalList.IndexOf(evalList.Min())];
     }
     
@@ -33,7 +35,7 @@ public class MyBot : IChessBot
     {
         if (board.IsInCheckmate())
         {
-            return (Convert.ToInt32(board.IsWhiteToMove) - 0.5) * -256;
+            return (Convert.ToInt32(board.IsWhiteToMove) - 0.5) * -64 * (depth + 1);
         }
 
         if (board.IsDraw())
