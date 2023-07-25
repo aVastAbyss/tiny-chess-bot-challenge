@@ -17,7 +17,7 @@ public class MyBot : IChessBot
         foreach (Move move in legalMoves)
         {
             board.MakeMove(move);
-            values.Add(Minimax(board, 2));
+            values.Add(Minimax(board, 3));
             board.UndoMove(move);
         }
 
@@ -33,7 +33,7 @@ public class MyBot : IChessBot
     {
         if (board.IsInCheckmate())
         {
-            return (Convert.ToInt32(board.IsWhiteToMove) - 0.5) * -255;
+            return (2 * Convert.ToInt32(board.IsWhiteToMove) - 0.5) * -127;
         }
 
         if (board.IsDraw())
@@ -67,12 +67,12 @@ public class MyBot : IChessBot
     double EvaluatePosition(Board board)
     {
         PieceList[] piecesOnBoard = board.GetAllPieceLists();
-        int noise = rand.Next(0, 99);
+        int noise = rand.Next(0, 100);
         double eval = (double)noise / 100 - 0.5;
 
         if (board.IsInCheck())
         {
-            eval -= (Convert.ToInt32(board.IsWhiteToMove) - 0.5) * 31;
+            eval -= (2 * Convert.ToInt32(board.IsWhiteToMove) - 0.5) * 3;
         }
 
         foreach (PieceList pieceList in piecesOnBoard)
