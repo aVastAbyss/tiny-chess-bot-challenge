@@ -6,7 +6,7 @@ using System.Linq;
 
 public class MyBot : IChessBot
 {
-    int[] pieceValues = {0, 1, 3, 3, 5, 9, 127};
+    int[] pieceValues = {0, 1, 3, 3, 5, 9, 64};
     Random rand = new Random();
 
     public Move Think(Board board, Timer timer)
@@ -23,9 +23,11 @@ public class MyBot : IChessBot
 
         if (board.IsWhiteToMove)
         {
+            Console.WriteLine(values.Max());
             return legalMoves[values.IndexOf(values.Max())];
         }
 
+        Console.WriteLine(values.Min());
         return legalMoves[values.IndexOf(values.Min())];
     }
 
@@ -33,7 +35,7 @@ public class MyBot : IChessBot
     {
         if (board.IsInCheckmate())
         {
-            return (2 * Convert.ToInt32(board.IsWhiteToMove) - 0.5) * -127;
+            return (Convert.ToInt32(board.IsWhiteToMove) - 0.5) * -128;
         }
 
         if (board.IsDraw())
@@ -72,7 +74,7 @@ public class MyBot : IChessBot
 
         if (board.IsInCheck())
         {
-            eval -= (2 * Convert.ToInt32(board.IsWhiteToMove) - 0.5) * 3;
+            eval -= (Convert.ToInt32(board.IsWhiteToMove) - 0.5) * 6;
         }
 
         foreach (PieceList pieceList in piecesOnBoard)
