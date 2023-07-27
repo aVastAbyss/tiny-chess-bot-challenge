@@ -1,5 +1,9 @@
+// numOfNodesVisited is a globally defined integer that stores the number of nodes visited
+
 double Minimax(Board board, int depth)
 {
+    numOfNodesVisited++;
+
     if (board.IsInCheckmate())
     {
         return (Convert.ToInt32(board.IsWhiteToMove) - 0.5) * -64 * (depth + 1);
