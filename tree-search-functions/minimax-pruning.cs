@@ -1,4 +1,5 @@
 // numOfNodesVisited is a globally defined integer that stores the number of nodes visited
+// alpha and beta are initialized to -127 and 127 respectively
 
 double Minimax(Board board, double alpha, double beta, int depth)
 {
