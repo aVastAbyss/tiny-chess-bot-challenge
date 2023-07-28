@@ -1,5 +1,5 @@
 // numOfNodesVisited is a globally defined integer that stores the number of nodes visited
-// alpha and beta are initialized to -127 and 127 respectively
+// alpha and beta are initialized to -128 and 128 respectively
 // pieceValues is a globally defined array that contains the values of each type of piece
 
 double Minimax(Board board, double alpha, double beta, int depth)
@@ -73,14 +73,14 @@ Move[] GetOrderedMoves(Board board)
     Move[] legalMoves = board.GetLegalMoves();
 
     int[] moveValues = new int[legalMoves.Length];
-    Move[] movesToSort = new Move[legalMoves.Length];
+    Move[] movesArray = new Move[legalMoves.Length];
 
     for (int i = 0; i < legalMoves.Length; i++)
     {
         Move move = legalMoves[i];
 
         moveValues[i] = 0;
-        movesToSort[i] = move;
+        movesArray[i] = move;
 
         Piece attackingPiece = board.GetPiece(move.StartSquare);
         Piece capturedPiece = board.GetPiece(move.TargetSquare);
@@ -93,7 +93,7 @@ Move[] GetOrderedMoves(Board board)
         }
     }
 
-    Array.Sort(moveValues, movesToSort);
-    Array.Reverse(movesToSort);
-    return movesToSort;
+    Array.Sort(moveValues, movesArray);
+    Array.Reverse(movesArray);
+    return movesArray;
 }
