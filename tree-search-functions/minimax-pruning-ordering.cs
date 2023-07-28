@@ -1,3 +1,7 @@
+// numOfNodesVisited is a globally defined integer that stores the number of nodes visited
+// alpha and beta are initialized to -127 and 127 respectively
+// pieceValues is a globally defined array that contains the values of each type of piece
+
 double Minimax(Board board, double alpha, double beta, int depth)
 {
     numOfNodesVisited++;
