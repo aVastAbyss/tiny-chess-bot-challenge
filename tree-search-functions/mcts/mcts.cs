@@ -10,105 +10,122 @@ public class MyBot : IChessBot
 
     class Node
     {
-        Board GameState;
+        Random rand = new Random();
 
-        int NetValue = 0;
-        int TimesVisited = 0;
+        public Board State;
+        public Move? NodeAction;
 
-        List<Node> Children = new List<Node>();
+        public int NetValue = 0;
+        public int Visits = 0;
 
-        public Node(Board board)
+        public Node? Parent;
+        public List<Node> Children = new List<Node>();
+
+        public Node(Board board, Move? move = null, Node? parentNode = null)
         {
-            GameState = board;
+            State = board;
+            NodeAction = move;
+            Parent = parentNode;
         }
 
-        public Node SelectNode()    // Selects a random leaf node
+        // Selects a leaf node
+        public Node SelectNode()
         {
+            // Returns the current node if it's a leaf node
             if (Children.Count == 0)
-            {
                 return this;
-            }
 
-            // Explore a new node
-            if (rand.Next(1, 100) <= 10)
-            {
-                return Children[rand.Next(0, Children.Count - 1)].SelectNode();
-            }
+            // Explores a new node
+            if (rand.Next(1, 100) <= 25)
+                return Children[rand.Next(0, Children.Count)].SelectNode();
 
-            // Exploit current knowledge
-            Node bestNode;
-            double bestValue = -128;
-
-            foreach (Node childNode in Children)
-            {
-                if (childNode.TimesVisited == 0)
-                {
-                    return childNode;
-                }
-
-                if (childNode.NetValue / childNode.TimesVisited > bestValue)
-                {
-                    bestNode = childNode;
-                    bestValue = childNode.NetValue / childNode.TimesVisited;
-                }
-            }
-
-            return bestNode;
+            // Exploits current knowledge by selecting best node
+            return GetBestChild();
         }
 
-        public void Expand()    // Generates the children of that leaf node
+        // Creates child nodes for a given leaf node
+        public void Expand()
         {
-            Move[] actions = GameState.GetLegalMoves();
+            Move[] actions = State.GetLegalMoves();
 
             foreach (Move move in actions)
             {
-                GameState.MakeMove(move);
-                Children.Add(new Node(GameState));
-                GameState.UndoMove(move);
+                State.MakeMove(move);
+                Children.Add(new Node(State, move, this));
+                State.UndoMove(move);
             }
         }
 
-        public int Rollout()   // Simulates a random game
+        // Simulates a game using random moves
+        public int Rollout(Node node)
         {
-            if (GameState.IsInCheckmate())
-            {
-                return (int)((Convert.ToInt32(GameState.IsWhiteToMove) - 0.5) * -2);
-            }
+            if (node.State.IsInCheckmate())
+                return node.State.IsWhiteToMove ? -1 : 1;
 
-            if (GameState.IsDraw())
-            {
+            if (node.State.IsDraw())
                 return 0;
+
+            Move[] actions = node.State.GetLegalMoves();
+            Move move = actions[rand.Next(0, actions.Length)];
+
+            node.State.MakeMove(move);
+            int rolloutValue = node.Rollout(node);
+            node.State.UndoMove(move);
+
+            return rolloutValue;
+        }
+
+        // Updates the attributes of each node up the tree
+        public void Backprop(int rolloutValue)
+        {
+            NetValue += rolloutValue;
+            Visits++;
+
+            if (Parent != null)
+                Parent.Backprop(rolloutValue);
+        }
+
+        // Returns the best child node
+        public Node GetBestChild()
+        {
+            double bestValue = -1;
+            int bestNodeIndex = 0;
+
+            for (int i = 0; i < Children.Count; i++)
+            {
+                // Nodes that haven't been explored yet are given priority
+                if (Children[i].Visits == 0)
+                    return Children[i];
+
+                if ((double)Children[i].NetValue / Children[i].Visits >= bestValue)
+                {
+                    bestNodeIndex = i;
+                    bestValue = (double)Children[i].NetValue / Children[i].Visits;
+                }
             }
 
-            int result;
-
-            Move[] actions = GameState.GetLegalMoves();
-            Move move = actions[rand.Next(0, actions.Length - 1)];
-
-            GameState.MakeMove(move);
-            result = node.Rollout();
-            GameState.UndoMove(move);
-
-            return result;
+            return Children[bestNodeIndex];
         }
     }
 
     public Move Think(Board board, Timer timer)
     {
-        return MCTS(board, 1000);
-    }
+        int iterations = 10000;
 
-    Move MCTS(Board board, int iterations)
-    {
         Node rootNode = new Node(board);
-        Node node;
-        int rolloutResult;
+        Node node = rootNode.SelectNode();
 
         for (int i = 0; i < iterations; i++)
         {
             node = rootNode.SelectNode();
             node.Expand();
-            rolloutResult = node.RollOut();
+            int rolloutValue = node.Rollout(node.Children[rand.Next(0, node.Children.Count)]);
+            node.Backprop(rolloutValue);
         }
+
+        Node bestNode = rootNode.GetBestChild();
+        Console.WriteLine(Math.Round(0.5 + (double)bestNode.NetValue / bestNode.Visits, 2));
+
+        return bestNode.NodeAction.Value;
     }
 }
