@@ -16,35 +16,38 @@ public class MyBot : IChessBot
         public Board State;
         public Move? NodeAction;
 
-        public bool IsBotWhite;
+        public int Depth;
 
-        public int NetValue = 0;
+        public double NodeValue;
         public int Visits = 0;
 
         public Node? Parent;
         public List<Node> Children = new List<Node>();
 
-        public Node(Board board, bool isBotWhite, Move? move = null, Node? parentNode = null)
+        public Node(Board board, int depth, Move? move = null, Node? parentNode = null)
         {
             State = board;
-            IsBotWhite = isBotWhite;
+            Depth = depth;
             NodeAction = move;
             Parent = parentNode;
+
+            NodeValue = (board.IsWhiteToMove ? -1 : 1) * 128;
         }
 
         // Selects a leaf node
-        public Node SelectNode()
+        public Node SelectLeaf()
         {
             // Returns the current node if it's a leaf node
             if (Children.Count == 0)
                 return this;
 
             // Explores a new node
-            if (rand.Next(1, 100) <= 25)
-                return Children[rand.Next(0, Children.Count)].SelectNode();
+            if (rand.Next(1, 100) <= 50)
+                return Children[rand.Next(0, Children.Count)].SelectLeaf();
 
             // Exploits current knowledge by selecting best node
-            return GetBestChild();
+            Node bestChildNode = GetBestChild();
+            return bestChildNode.SelectLeaf();
         }
 
         // Returns the best child node
@@ -53,98 +56,96 @@ public class MyBot : IChessBot
             double bestValue = -128;
             int bestNodeIndex = 0;
 
+            int colorValue = State.IsWhiteToMove ? 1 : -1;
+
             for (int i = 0; i < Children.Count; i++)
             {
                 // Nodes that haven't been explored yet are given priority
                 if (Children[i].Visits == 0)
                     return Children[i];
 
-                if ((double)Children[i].NetValue / Children[i].Visits >= bestValue)
+                if (colorValue * Children[i].NodeValue >= bestValue)
                 {
                     bestNodeIndex = i;
-                    bestValue = (double)Children[i].NetValue / Children[i].Visits;
+                    bestValue = colorValue * Children[i].NodeValue;
                 }
             }
 
             return Children[bestNodeIndex];
         }
 
-        // Creates child nodes for a given leaf node
-        public void Expand()
+        // Creates child nodes for a given leaf node and selects a random one
+        public Node Expand()
         {
             Move[] actions = State.GetLegalMoves();
 
             foreach (Move move in actions)
             {
                 State.MakeMove(move);
-                Children.Add(new Node(State, IsBotWhite, move, this));
+                Children.Add(new Node(State, Depth + 1, move, this));
                 State.UndoMove(move);
             }
+
+            return Children[rand.Next(0, Children.Count)];
         }
 
-        // Simulates a game using random moves
-        public int Rollout(Node node, int depth)
+        // Uses an evaluation function instead of random rollouts
+        public double Evaluate()
         {
-            if (node.State.IsInCheckmate())
-                return (node.State.IsWhiteToMove != node.IsBotWhite) ? -128 : 128;
+            if (State.IsInCheckmate())
+                return State.IsWhiteToMove ? -128 : 128;
 
-            if (node.State.IsDraw())
+            if (State.IsDraw())
                 return 0;
 
-            if (depth == 0)
-                return node.EvaluatePosition();
+            PieceList[] piecesOnBoard = State.GetAllPieceLists();
+            double eval = 0;
 
-            Move[] actions = node.State.GetLegalMoves();
-            Move move = actions[rand.Next(0, actions.Length)];
-
-            node.State.MakeMove(move);
-            int eval = node.Rollout(node, depth - 1);
-            node.State.UndoMove(move);
+            foreach (PieceList pieceList in piecesOnBoard)
+            {
+                int colorValue = pieceList.IsWhitePieceList ? 1 : -1;
+                eval += pieceValues[(int)pieceList[0].PieceType] * pieceList.Count * colorValue;
+            }
 
             return eval;
         }
 
-        public int EvaluatePosition()
-        {
-            PieceList[] piecesOnBoard = State.GetAllPieceLists();
-            int eval = 0;
-
-            foreach (PieceList pieceList in piecesOnBoard)
-            {
-                int colorValue = pieceList.IsWhitePieceList ? -1 : 1;
-                eval += pieceValues[(int)pieceList[0].PieceType] * pieceList.Count * colorValue;
-            }
-
-            return IsBotWhite ? -eval : eval;
-        }
-
         // Updates the attributes of each node up the tree
-        public void Backprop(int rolloutValue)
+        public void Backprop(double eval)
         {
-            NetValue += rolloutValue;
+            int colorValue = State.IsWhiteToMove ? 1 : -1;
+
+            NodeValue = colorValue * Math.Max(colorValue * NodeValue, colorValue * eval);
             Visits++;
 
             if (Parent != null)
-                Parent.Backprop(rolloutValue);
+                Parent.Backprop(eval);
         }
     }
 
     public Move Think(Board board, Timer timer)
     {
-        int iterations = 50000;
+        int iterations = 500;
 
-        Node rootNode = new Node(board, board.IsWhiteToMove);
-        Node node = rootNode.SelectNode();
+        Node rootNode = new Node(board, 0);
+        Node leafNode = rootNode.SelectLeaf();
+
+        int maxDepth = 0;
 
         for (int i = 0; i < iterations; i++)
         {
-            node = rootNode.SelectNode();
-            node.Expand();
-            int rolloutValue = node.Rollout(node.Children[rand.Next(0, node.Children.Count)], 64);
-            node.Backprop(rolloutValue);
+            leafNode = rootNode.SelectLeaf();
+            leafNode = leafNode.Expand();
+            double eval = leafNode.Evaluate();
+            leafNode.Backprop(eval);
+
+            maxDepth = Math.Max(maxDepth, leafNode.Depth);
         }
 
         Node bestNode = rootNode.GetBestChild();
+
+        Console.WriteLine(bestNode.NodeValue);
+
         return bestNode.NodeAction.Value;
     }
 }
