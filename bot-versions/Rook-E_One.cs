@@ -1,6 +1,6 @@
 // uses a variation of minimax called negamax with AB pruning and move ordering
 // search depth = 4
-// use a naive evaluation function
+// uses a naive evaluation function
 
 using ChessChallenge.API;
 using System;
@@ -27,14 +27,10 @@ public class MyBot : IChessBot
             board.UndoMove(move);
         }
 
-        if (board.IsWhiteToMove)
-        {
-            Console.WriteLine("Rook-E One, Eval: " + evalList.Max().ToString() + ", Nodes: " + numOfNodesVisited.ToString());
-            return legalMoves[evalList.IndexOf(evalList.Max())];
-        }
+        double eval = board.IsWhiteToMove ? evalList.Max() : evalList.Min();
+        Console.WriteLine("Rook-E One, Eval: " + eval.ToString() + ", Nodes: " + numOfNodesVisited.ToString());
 
-        Console.WriteLine("Rook-E One, Eval: " + evalList.Min().ToString() + ", Nodes: " + numOfNodesVisited.ToString());
-        return legalMoves[evalList.IndexOf(evalList.Min())];
+        return legalMoves[evalList.IndexOf(eval)];
     }
 
     double Negamax(Board board, double alpha, double beta, int depth)
